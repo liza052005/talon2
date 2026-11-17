@@ -5,7 +5,7 @@ export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // <--- ВАЖНО
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -17,9 +17,10 @@ export const AuthProvider = ({ children }) => {
         } catch (err) {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
+          setUser(null);
         }
       }
-      setLoading(false); // <--- ВАЖНО: загрузка завершена
+      setLoading(false);
     };
     checkAuth();
   }, []);
@@ -31,13 +32,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    // 1. Удаляем токены
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    // 2. Сбрасываем пользователя в стейте
     setUser(null);
+    // 3. Жестко перезагружаем страницу на главную (это гарантированно сбросит все стейты)
+    window.location.href = '/'; 
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-secondary">Загрузка...</div>; // <--- Ждем, пока грузится
+    return <div className="min-h-screen flex items-center justify-center bg-secondary">Загрузка...</div>;
   }
 
   return (

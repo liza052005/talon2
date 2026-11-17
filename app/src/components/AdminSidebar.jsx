@@ -52,17 +52,22 @@ const NAV_ITEMS = [
   },
 ];
 
-const AdminSidebar = ({ active }) => {
+const AdminSidebar = ({ active, onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const currentId = active ?? NAV_ITEMS.find((item) => location.pathname.startsWith(item.path))?.id;
 
-  // Пока только верстка: закрываем модалку и редиректим на главную (страницу входа)
   const handleLogout = () => {
     setIsLogoutModalOpen(false);
-    navigate('/'); 
+    if (onLogout) {
+      onLogout();
+    } else {
+      // Аварийный выход, если onLogout не передан
+      localStorage.clear();
+      window.location.href = '/';
+    }
   };
 
   return (

@@ -36,6 +36,24 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ('email', 'username')
     ordering = ('email',)
 
+    # --- ВОТ СЮДА НУЖНО ВСТАВИТЬ МЕТОДЫ ---
+    def delete_model(self, request, obj):
+        # Перед удалением пользователя проверяем, есть ли у него профиль студента
+        if hasattr(obj, 'student_profile'):
+            candidate = obj.student_profile.candidate
+            candidate.is_registered = False
+            candidate.save(update_fields=['is_registered'])
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        # То же самое для массового удаления (через галочки)
+        for obj in queryset:
+            if hasattr(obj, 'student_profile'):
+                candidate = obj.student_profile.candidate
+                candidate.is_registered = False
+                candidate.save(update_fields=['is_registered'])
+        super().delete_queryset(request, queryset)
+
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
@@ -94,3 +112,4 @@ class VerificationCodeAdmin(admin.ModelAdmin):
     list_display = ('user', 'code', 'created_at', 'expires_at', 'used')
     list_filter = ('used',)
     readonly_fields = ('user', 'code', 'created_at', 'expires_at', 'used')
+    # <--- Здесь больше ничего лишнего нет

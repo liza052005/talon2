@@ -20,7 +20,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import zoneinfo
-
+from django.db.models import ProtectedError
 from core.models import MealLog, QRSession
 from .permissions import IsStaffForQR
 from .serializers import QRSessionCreateSerializer, QRSessionSerializer
@@ -463,18 +463,34 @@ class AdminStudentDetailView(APIView):
             
             if id_str.startswith('profile_'):
                 real_id = int(id_str.split('_')[1])
-                profile = StudentProfile.objects.get(pk=real_id)
-                profile.user.delete() # удалит и профиль
+                try:
+                    profile = StudentProfile.objects.get(pk=real_id)
+                except StudentProfile.DoesNotExist:
+                    return Response({'detail': 'Студент не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+                # 1. Отвязываем заготовку и возвращаем ей статус "не зарегистрирован"
+                candidate = profile.candidate
+                candidate.is_registered = False
+                candidate.save(update_fields=['is_registered'])
+
+                # 2. Удаляем логи питания студента (иначе PROTECT не даст удалить)
+                from core.models import MealLog
+                MealLog.objects.filter(student=profile).delete()
+
+                # 3. Удаляем самого пользователя (каскадно удалит и профиль)
+                profile.user.delete()
                 
             elif id_str.startswith('candidate_'):
                 real_id = int(id_str.split('_')[1])
-                candidate = StudentCandidate.objects.get(pk=real_id)
-                candidate.delete()
+                try:
+                    candidate = StudentCandidate.objects.get(pk=real_id)
+                    candidate.delete()
+                except StudentCandidate.DoesNotExist:
+                    return Response({'detail': 'Заготовка не найдена'}, status=status.HTTP_404_NOT_FOUND)
                 
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 
@@ -585,6 +601,12 @@ class AdminGroupDetailView(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Group.DoesNotExist:
             return Response({'detail': 'Группа не найдена'}, status=status.HTTP_404_NOT_FOUND)
+        except ProtectedError:
+            # Вот эта обработка спасет от 500-й ошибки
+            return Response(
+                {'detail': 'Нельзя удалить группу, так как в ней есть студенты. Сначала переведите или удалите их.'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 from core.models import Category
 from django.db.models import Count

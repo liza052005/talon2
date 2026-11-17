@@ -10,22 +10,23 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+import os
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x=59*3ey&%rl6g^n@9t(_w0_q!aabw(-xhgmu(t16lr5r5qun$'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-x=59*3ey&%rl6g^n@9t(_w0_q!aabw(-xhgmu(t16lr5r5qun$')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+
 
 
 # Application definition
@@ -48,7 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',          # ← добавить, выше CommonMiddleware
+    'corsheaders.middleware.CorsMiddleware',  # должен быть выше CommonMiddleware
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -60,18 +61,11 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
-import os
-from pathlib import Path
-
-# ... (в начале файла, где BASE_DIR)
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# ... (в середине)
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR.parent / 'app' / 'build', # <--- ДОБАВИТЬ ЭТО (путь к папке build)
+            BASE_DIR.parent / 'app' / 'build',  # путь к папке build фронтенда
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -90,16 +84,17 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-import os
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'talon_db'),
+        'NAME': os.environ.get('DB_NAME', 'meal_db'),
         'USER': os.environ.get('DB_USER', 'postgres'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
-        'HOST': os.environ.get('DB_HOST', 'db'), # Имя сервиса в docker-compose
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 60,
+        'CONN_HEALTH_CHECKS': True,
     }
 }
 
@@ -128,7 +123,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -140,42 +135,36 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Добавляем папку build/static только если она существует,
+# иначе collectstatic/runserver упадёт с ошибкой.
+_build_static = BASE_DIR.parent / 'app' / 'build' / 'static'
 STATICFILES_DIRS = [
-    BASE_DIR.parent / 'app' / 'build' / 'static', # <--- ДОБАВИТЬ ЭТО
+    BASE_DIR.parent / 'app' / 'build' / 'static', # <--- Путь к статике React
 ]
-
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
 # --- НАСТРОЙКА РЕАЛЬНОЙ ПОЧТЫ (Gmail) ---
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
-        "HOST": "smtp.gmail.com",
-        "PORT": 587,
-        "USERNAME": "lizasmirnova@gmail.com",   # <-- ВСТАВЬ СВОЮ ПОЧТУ
-        "PASSWORD": "hhafcndiwbarxjrn", # <-- ВСТАВЬ ТОТ 16-ЗНАЧНЫЙ КОД
-        "USE_TLS": True,
-    },
-}
-DEFAULT_FROM_EMAIL = "lizasmirnova943@gmail.com" # Должно совпадать с USERNAME
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'lizasmirnova943@gmail.com'      # ваш адрес
+EMAIL_HOST_PASSWORD = 'hhafcndiwbarxjrn'  # не обычный пароль!
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SERVER_EMAIL = EMAIL_HOST_USER
+
 
 # --- CORS (React на другом порту) ---
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",   # Vite (на будущее)
+    "http://localhost:5173",   # Vite
     "http://127.0.0.1:5173",
-    "http://localhost:3000",   # <--- ДОБАВИТЬ ЭТО (для React CRA)
-    "http://127.0.0.1:3000", 
-
-    "http://localhost:3000", # Для локальной разработки
-    "https://talon-frontend.netrun.app", # Для продакшена
+    "http://localhost:3000",   # React CRA
+    "http://127.0.0.1:3000",
 ]
-
-се
+CORS_ALLOW_CREDENTIALS = True
 ALLOWED_HOSTS = ['*']
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_CREDENTIALS = True
 
 # --- DRF ---
 REST_FRAMEWORK = {
@@ -187,23 +176,19 @@ REST_FRAMEWORK = {
     ),
 }
 
-# --- Кастомная модель пользователя (заложим сразу) ---
+
+# --- Кастомная модель пользователя ---
 AUTH_USER_MODEL = 'core.User'
 
-# --- Email (на разработке — в консоль) ---
 
-DEFAULT_FROM_EMAIL = 'noreply@meal-system.local'
-
-# --- Часовой пояс (поставь свой) ---
-TIME_ZONE = 'Europe/Moscow'
-USE_TZ = True
-from datetime import timedelta
-
+# --- JWT ---
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+
 # --- QR-сессии (ТЗ 4.1) ---
-QR_TOKEN_TTL_SECONDS = 180          # 3 минуты
+QR_TOKEN_TTL_SECONDS = 180           # 3 минуты
 QR_ASSIGNMENT_TIMEOUT_SECONDS = 600  # 10 минут на подтверждение (ТЗ 4.4)

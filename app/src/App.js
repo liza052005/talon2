@@ -3,7 +3,6 @@ import { useContext } from 'react';
 import { AuthProvider, AuthContext } from './store/AuthContext';
 import { RegisterProvider } from './store/RegisterContext';
 
-
 import Auth from './Pages/Auth';
 import RegisterStep1 from './Pages/RegisterStep1';
 import RegisterStep2 from './Pages/RegisterStep2';
@@ -25,7 +24,6 @@ import DashboardStudent from './Pages/DashboardStudent';
 import DashboardGroups from './Pages/DashboardGroups';
 import DashboardCategories from './Pages/DashboardCategories';
 import DashboardReports from './Pages/DashboardReports';
-
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
@@ -67,6 +65,7 @@ const PublicRoute = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
+      {/* --- Публичные страницы --- */}
       <Route path="/" element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterStep1 /></PublicRoute>} />
       <Route path="/register/step-2" element={<PublicRoute><RegisterStep2 /></PublicRoute>} />
@@ -74,28 +73,29 @@ function AppRoutes() {
       <Route path="/code" element={<PublicRoute><CodeInput /></PublicRoute>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/check" element={<AccountCheck />} />
+      <Route path="/success" element={<SuccessCheck />} />
 
+      {/* --- Студенты --- */}
       <Route path="/student" element={<ProtectedRoute><StudentHome /></ProtectedRoute>} />
       <Route path="/student/scan" element={<ProtectedRoute><ScanQR /></ProtectedRoute>} />
       <Route path="/student/confirm" element={<ProtectedRoute><MealConfirm /></ProtectedRoute>} />
       <Route path="/student/success" element={<ProtectedRoute><MealSuccess /></ProtectedRoute>} />
 
+      {/* --- Сотрудники (столовая) --- */}
       <Route path="/staff" element={<PublicRoute><StaffLogin /></PublicRoute>} />
       <Route path="/staff/code" element={<PublicRoute><StaffCode /></PublicRoute>} />
       <Route path="/staff/qr" element={<ProtectedRoute><StaffQr /></ProtectedRoute>} />
 
+      {/* --- Администраторы и модераторы --- */}
       <Route path="/admin/staff" element={<AdminRoute><AdminStaff /></AdminRoute>} />
-      
-      <Route path="/check" element={<AccountCheck />} />
-      <Route path="/success" element={<SuccessCheck />} />
+      <Route path="/admin/students" element={<AdminRoute><DashboardStudent /></AdminRoute>} />
+      <Route path="/admin/groups" element={<AdminRoute><DashboardGroups /></AdminRoute>} />
+      <Route path="/admin/categories" element={<AdminRoute><DashboardCategories /></AdminRoute>} />
+      <Route path="/admin/reports" element={<AdminRoute><DashboardReports /></AdminRoute>} />
 
+      {/* --- 404 --- */}
       <Route path="*" element={<Navigate to="/" replace />} />
-
-      <Route path="/admin/students" element={<DashboardStudent />} />
-      <Route path="/admin/groups" element={<DashboardGroups />} />
-      <Route path="/admin/categories" element={<DashboardCategories />} />
-      <Route path="/admin/reports" element={<DashboardReports />} />
-
     </Routes>
   );
 }
